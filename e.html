@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>💹 Juego del Crecimiento Exponencial — Euler</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background-color: #0a0a0a;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 30px;
+    }
+    button {
+      background-color: #00b894;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background-color: #019875;
+    }
+    #stats {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+    #mensaje {
+      font-size: 20px;
+      margin-top: 15px;
+      color: #f9ca24;
+    }
+    canvas {
+      background-color: #1e272e;
+      border-radius: 10px;
+      margin-top: 30px;
+      width: 90%;
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>💹 Juego del Crecimiento Exponencial — Euler (e)</h1>
+  <p>Invierte o espera... pero cuidado con la quiebra 💀</p>
+
+  <div id="stats">
+    <p>💰 Dinero: <span id="dinero">100</span> monedas</p>
+    <p>⏱️ Tiempo: <span id="tiempo">30</span> s</p>
+  </div>
+
+  <button onclick="invertir()">Invertir</button>
+  <button onclick="esperar()">Esperar</button>
+  <div id="mensaje"></div>
+
+  <canvas id="grafico"></canvas>
+
+  <script>
+    let dinero = 100;
+    let tiempo = 30;
+    let juegoActivo = true;
+
+    const historial = [dinero];
+    const riesgo = [Math.random() * 50 + 10]; // riesgo inicial entre 10% y 60%
+    const decisiones = ["Inicio"];
+
+    const dineroElem = document.getElementById("dinero");
+    const tiempoElem = document.getElementById("tiempo");
+    const mensajeElem = document.getElementById("mensaje");
+
+    // Configuración del gráfico
+    const ctx = document.getElementById("grafico").getContext("2d");
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: decisiones,
+        datasets: [
+          {
+            label: "💰 Dinero",
+            data: historial,
+            borderColor: "#00b894",
+            backgroundColor: "rgba(0,184,148,0.2)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 5,
+            pointBackgroundColor: "#f9ca24"
+          },
+          {
+            label: "⚠️ Riesgo de pérdida (%)",
+            data: riesgo,
+            borderColor: "#ff4757",
+            backgroundColor: "rgba(255,71,87,0.2)",
+            tension: 0.3,
+            fill: false,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "Monedas" }
+          },
+          y1: {
+            beginAtZero: true,
+            position: 'right',
+            title: { display: true, text: "Riesgo (%)" },
+            grid: { drawOnChartArea: false }
+          },
+          x: {
+            title: { display: true, text: "Decisiones del jugador" }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: { color: "white" }
+          }
+        }
+      }
+    });
+
+    // Temporizador
+    const intervalo = setInterval(() => {
+      if (!juegoActivo) return;
+      tiempo--;
+      tiempoElem.textContent = tiempo;
+      if (tiempo <= 0) {
+        finalizarJuego("⏰ Se acabó el tiempo. Terminaste con " + dinero + " monedas.");
+      }
+    }, 1000);
+
+    // Función para invertir
+    function invertir() {
+      if (!juegoActivo) return;
+      const factor = 1 + (Math.random() * 1.7 - 0.7); // -70% a +100%
+      const nuevoRiesgo = Math.round(Math.random() * 100); // riesgo aleatorio 0–100%
+      riesgo.push(nuevoRiesgo);
+
+      dinero = Math.round(dinero * factor);
+      if (dinero <= 0) {
+        dinero = 0;
+        actualizarGrafico("💀 Quiebra");
+        dineroElem.textContent = dinero;
+        finalizarJuego("💀 Has quebrado. Te has quedado sin dinero.");
+      } else {
+        dineroElem.textContent = dinero;
+        const texto = factor > 1
+          ? "¡Buena inversión! Tu dinero creció a " + dinero + " monedas 📈"
+          : "Mala jugada... perdiste parte del dinero 💸 (" + dinero + " monedas)";
+        mensajeElem.textContent = texto;
+        actualizarGrafico("Invertir");
+      }
+    }
+
+    // Función para esperar
+    function esperar() {
+      if (!juegoActivo) return;
+      const crecimiento = Math.exp(0.08);
+      dinero = Math.round(dinero * crecimiento);
+      const nuevoRiesgo = Math.max(5, riesgo[riesgo.length - 1] - 10); // esperar reduce el riesgo
+      riesgo.push(nuevoRiesgo);
+
+      dineroElem.textContent = dinero;
+      mensajeElem.textContent = "Tu dinero creció lentamente a " + dinero + " monedas 🪴";
+      actualizarGrafico("Esperar");
+    }
+
+    // Actualiza el gráfico con cada decisión
+    function actualizarGrafico(decision) {
+      decisiones.push(decision);
+      historial.push(dinero);
+      chart.update();
+    }
+
+    // Fin del juego
+    function finalizarJuego(texto) {
+      juegoActivo = false;
+      clearInterval(intervalo);
+      mensajeElem.innerHTML = texto + "<br><br><strong>Recarga la página para volver a jugar 🔁</strong>";
+    }
+  </script>
+
+</body>
+</html>

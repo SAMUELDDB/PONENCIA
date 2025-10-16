@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Juego: Construye π</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #111; color: #fff; }
+    #game { display: none; }
+    #number { font-size: 80px; margin: 30px; }
+    #sequence { font-size: 24px; margin: 20px; color: #0f0; }
+    #lives { font-size: 20px; margin: 20px; }
+    #score { font-size: 22px; margin: 20px; color: #0ff; }
+    #precision { font-size: 20px; margin: 20px; color: #ff0; }
+    button { font-size: 20px; padding: 10px 20px; cursor: pointer; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div id="start">
+    <h1>🎮 Construye π</h1>
+    <p>Antes de empezar, recuerda los primeros decimales de π:</p>
+    <h2>3.141592653589793238462643383279</h2>
+    <p>¿Hasta dónde podrás llegar tú?</p>
+    <button onclick="startGame()">¡Empezar!</button>
+  </div>
+
+  <div id="game">
+    <h1>🎮 Construye π</h1>
+    <p>Presiona el botón cuando veas el número correcto del siguiente decimal de π</p>
+    <div id="sequence">Tu π: 3.</div>
+    <div id="number">?</div>
+    <div id="lives">❤️❤️❤️</div>
+    <div id="score">Puntaje: 0</div>
+    <div id="precision">Precisión: 0%</div>
+    <button onclick="choose()">¡Elegir este número!</button>
+  </div>
+
+  <script>
+    // Dígitos de π (primeros 100)
+    const piDigits = "14159265358979323846264338327950288419716939937510" +
+                     "58209749445923078164062862089986280348253421170679";
+    
+    let index = 0;  
+    let lives = 3;
+    let current = "?";
+    let score = 0;
+    let gameRunning = false;
+
+    function updateLives() {
+      document.getElementById("lives").innerHTML = "❤️".repeat(lives);
+    }
+
+    function updateScore() {
+      document.getElementById("score").textContent = "Puntaje: " + score;
+      updatePrecision();
+    }
+
+    function updatePrecision() {
+      if (score === 0) {
+        document.getElementById("precision").textContent = "Precisión: 0%";
+        return;
+      }
+      let precision = (1 - 1 / Math.sqrt(score + 1)) * 100;
+      document.getElementById("precision").textContent = 
+        "Precisión: " + precision.toFixed(6) + "%";
+    }
+
+    function showNumber() {
+      if (!gameRunning || lives <= 0) return;
+      current = Math.floor(Math.random() * 10).toString();
+      document.getElementById("number").textContent = current;
+      setTimeout(showNumber, 1000); 
+    }
+
+    function choose() {
+      if (!gameRunning || lives <= 0) return;
+
+      let expected = piDigits[index];
+      if (current === expected) {
+        index++;
+        score++;
+        updateScore();
+        document.getElementById("sequence").textContent = "Tu π: 3." + piDigits.slice(0, index);
+      } else {
+        lives--;
+        updateLives();
+        if (lives <= 0) {
+          document.getElementById("number").textContent = "💀";
+          alert("Game Over. Lograste " + score + " decimales correctos.\n" +
+                "Tu π: 3." + piDigits.slice(0, index) + 
+                "\nPrecisión: " + ((1 - 1 / Math.sqrt(score + 1)) * 100).toFixed(6) + "%");
+        }
+      }
+    }
+
+    function startGame() {
+      document.getElementById("start").style.display = "none";
+      document.getElementById("game").style.display = "block";
+      gameRunning = true;
+      updateLives();
+      updateScore();
+      showNumber();
+    }
+  </script>
+</body>
+</html>
