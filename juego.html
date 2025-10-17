@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Juego 4D — Dispara y gana</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: black; color: white; font-family: Arial; }
+    #ui { position: absolute; top: 10px; left: 10px; }
+    #stats { position: absolute; top: 10px; right: 10px; text-align: right; }
+    #mensaje {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: yellow;
+      display: none;
+      text-shadow: 2px 2px 5px black;
+    }
+    #cursor {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 28px;
+      color: white;
+      pointer-events: none;
+      user-select: none;
+    }
+    button { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h2>Juego 4D — Elimina todos los objetivos</h2>
+    <p><b>Controles:</b><br>
+      WASD = mover X/Z · Flechas ↑/↓ = mover Y · Q/E = eje W<br>
+      Ratón = arrastrar mirada · Espacio = disparar
+    </p>
+    <button onclick="reiniciar()">Reiniciar</button>
+  </div>
+  <div id="stats">
+    <div id="puntos">Puntos: 0</div>
+    <div id="objetivos">Objetivos: 0</div>
+    <div id="tiempo">Tiempo: 60</div>
+  </div>
+  <div id="mensaje">🎉 ¡Ganaste! 🎉</div>
+  <div id="cursor">+</div>
+
+  <!-- Three.js desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js"></script>
+
+  <script>
+    let scene, camera, renderer;
+    let objetivos = [];
+    let puntos = 0;
+    let tiempo = 60; // segundos
+    let temporizador;
+
+    init();
+    animate();
+    iniciarTiempo();
+
+    function init() {
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 10;
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      generarObjetivos(10);
+
+      window.addEventListener("keydown", teclas);
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    // ===== Generar objetivos =====
+    function generarObjetivos(num = 5) {
+      objetivos = [];
+      for (let i = 0; i < num; i++) {
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const cube = new THREE.Mesh(geometry, material);
+
+        cube.position.set(
+          (Math.random() - 0.5) * 20,
+          (Math.random() - 0.5) * 20,
+          (Math.random() - 0.5) * 20
+        );
+
+        scene.add(cube);
+        objetivos.push(cube);
+      }
+      document.getElementById("objetivos").textContent = "Objetivos: " + objetivos.length;
+      document.getElementById("mensaje").style.display = "none"; 
+    }
+
+    // ===== Movimiento =====
+    function teclas(e) {
+      if (tiempo <= 0) return; // No moverse si terminó el tiempo
+      switch (e.code) {
+        case "KeyW": camera.position.z -= 0.5; break;
+        case "KeyS": camera.position.z += 0.5; break;
+        case "KeyA": camera.position.x -= 0.5; break;
+        case "KeyD": camera.position.x += 0.5; break;
+        case "ArrowUp": camera.position.y += 0.5; break;
+        case "ArrowDown": camera.position.y -= 0.5; break;
+        case "KeyQ": camera.rotation.y += 0.1; break; 
+        case "KeyE": camera.rotation.y -= 0.1; break;
+        case "Space": disparar(); break;
+      }
+    }
+
+    // ===== Disparo =====
+    function disparar() {
+      if (tiempo <= 0) return;
+      const raycaster = new THREE.Raycaster();
+      const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      raycaster.set(camera.position.clone(), dir);
+
+      const intersects = raycaster.intersectObjects(objetivos);
+      if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        scene.remove(hit);
+        objetivos = objetivos.filter(obj => obj !== hit);
+
+        puntos += 10;
+        document.getElementById("puntos").textContent = "Puntos: " + puntos;
+        document.getElementById("objetivos").textContent = "Objetivos: " + objetivos.length;
+
+        if (objetivos.length === 0) {
+          terminarJuego(true);
+        }
+      }
+    }
+
+    // ===== Tiempo =====
+    function iniciarTiempo() {
+      tiempo = 60;
+      document.getElementById("tiempo").textContent = "Tiempo: " + tiempo;
+      clearInterval(temporizador);
+      temporizador = setInterval(() => {
+        if (tiempo > 0) {
+          tiempo--;
+          document.getElementById("tiempo").textContent = "Tiempo: " + tiempo;
+          if (tiempo === 0) terminarJuego(false);
+        }
+      }, 1000);
+    }
+
+    function terminarJuego(ganaste) {
+      clearInterval(temporizador);
+      document.getElementById("mensaje").style.display = "block";
+      document.getElementById("mensaje").textContent = ganaste ? "🎉 ¡Ganaste!" : "⏳ Se acabó el tiempo";
+    }
+
+    // ===== Reiniciar =====
+    function reiniciar() {
+      while (objetivos.length > 0) {
+        scene.remove(objetivos.pop());
+      }
+      puntos = 0;
+      document.getElementById("puntos").textContent = "Puntos: 0";
+      generarObjetivos(10);
+      iniciarTiempo();
+    }
+
+    // ===== Animación =====
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>
